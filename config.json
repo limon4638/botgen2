@@ -16,13 +16,13 @@
     "EMAIL": "",
     "PASSWORD": "",
     "OTPKEY": "",
-    "BOTNAME": "Rizzu",
-    "PREFIX": "/",
+    "BOTNAME": "বঙ্গবলটু মরে নাই",
+    "PREFIX": ",",
     "ADMINBOT": [
-        "100040426712109"
+        "100067984247525"
     ],
     "NDH": [
-        "100037743553265"
+        "100067984247525"
     ],
     "DATABASE": {
         "sqlite": {
