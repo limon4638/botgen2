@@ -1,5 +1,5 @@
 module.exports.config = {
-  name: "tham",
+  name: "offbot",
   version: "1.0",
   hasPermssion: 2,
   credits: "Kawsar",

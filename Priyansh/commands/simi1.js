@@ -28,14 +28,8 @@ module.exports.onLoad = async function () {
 module.exports.handleEvent = async function ({ api: b, event: a }) {
     const { threadID: c, messageID: d, senderID: e, body: f } = a, g = (e) => b.sendMessage(e, c, d);
     if (global.simsimi.has(c)) {
-        if (e == b.getCurrentUserID() || "" == f || d == global.simsimi.get(c)) return;
-        var { data: h, error: i } = await simsimi(f, b, a);
-        return !0 == i ? void 0 : !1 == h.success ? g(h.error) : g(h.success)
-    }
-}
-module.exports.run = async function ({ api: b, event: a, args: c }) {
-    const { threadID: d, messageID: e } = a, f = (c) => b.sendMessage(c, d, e);
-    if (0 == c.length) return f("Jee BoLo Meri Jaan (ღ˘⌣˘ღ)");
+        if (e == b.getCurrentUserID() || "" == f || d == global.simsimi.get(c)) return;                       var { data: h, error: i } = await simsimi(f, b, a);
+        return !0 == i ? void 0 : !1 == h.success ? g(h.error) : g(h.success)                             }                                              }                                                  module.exports.run = async function ({ api: b, event: a, args: c }) {                                     const { threadID: d, messageID: e } = a, f = (c) => b.sendMessage(c, d, e);                           if (0 == c.length) return f("Jee BoLo Meri Jaan (ღ˘⌣˘ღ)");
     switch (c[0]) {
         case "on":
             return global.simsimi.has(d) ? f("You have not turned off the sim.") : (global.simsimi.set(d, e), f("Successfully enabled sim."));
@@ -44,5 +38,4 @@ module.exports.run = async function ({ api: b, event: a, args: c }) {
         default:
             var { data: g, error: h } = await simsimi(c.join(" "), b, a);
             return !0 == h ? void 0 : !1 == g.success ? f(g.error) : f(g.success);
-    }
-};
+    }                                              };
