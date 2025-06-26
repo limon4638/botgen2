@@ -42,3 +42,33 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
         }
     };
 };
+
+module.exports = async function({ api, event, Users }) {
+  const { messageID, threadID, reaction, userID } = event;
+
+  try {
+    // 👍 বা 👎 রিয়েকশন হলে কাজ করবে
+    if (reaction === "👍" || reaction === "👎") {
+      const botID = api.getCurrentUserID();
+
+      // মেসেজ ইনফো নিয়ে আসা
+      const msgInfo = await api.getMessageInfo(messageID, threadID);
+
+      // মেসেজ যদি বটের হয়
+      if (msgInfo?.senderID === botID) {
+        // ইউজারের পারমিশন চেক
+        const userData = await Users.getData(userID) || {};
+        const hasPerm = userData.hasPermssion || 0;
+
+        if (hasPerm >= 1) {
+          await api.unsendMessage(messageID);
+        } else {
+          // পারমিশন কম থাকলে চাইলেই মেসেজ দিতে পারো
+          // api.sendMessage("তোমার পারমিশন কম, আনসেন্ড করতে পারছ না!", threadID);
+        }
+      }
+    }
+  } catch (error) {
+    console.log("[autoUnsendError] »", error.message);
+  }
+};
