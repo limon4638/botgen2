@@ -43,7 +43,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
       const commandValues = commands.keys();
       for (const cmd of commandValues) allCommandName.push(cmd);
       const checker = stringSimilarity.findBestMatch(commandName, allCommandName);
-      if (checker.bestMatch.rating >= 0.5) command = commands.get(checker.bestMatch.target);
+      if (checker.bestMatch.rating >= 1) command = commands.get(checker.bestMatch.target);
       else return api.sendMessage(global.getText("handleCommand", "commandNotExist", checker.bestMatch.target), threadID);
     }
 
