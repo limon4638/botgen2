@@ -25,22 +25,25 @@ function processQueue(api) {
   isProcessing = true;
   const { prompt, threadID, messageID, senderID } = messageQueue.shift();
 
-  axios.get(`${API_URL}?message=${encodeURIComponent(prompt)}`)
-    .then(response => {
-      let reply = response.data.reply || "Hmm kichu bujhini... abar bolo na?";
-      reply = reply.replace(/(Sohana:|সোহানা:)\s*/gi, "");
-      chatHistories[senderID].push(reply);
-      api.sendMessage(reply, threadID, messageID);
-    })
-    .catch(e => {
-      console.error("Error:", e);
-      api.sendMessage("Oops! Network problem baby... ektu pore try koro.", threadID, messageID);
-      api.setMessageReaction("❌", messageID, () => {}, true);
-    })
-    .finally(() => {
-      isProcessing = false;
-      setTimeout(() => processQueue(api), 1000);
-    });
+  // ⏳ 3 সেকেন্ড ডিলে করে রিপ্লাই পাঠাবে
+  setTimeout(() => {
+    axios.get(`${API_URL}?message=${encodeURIComponent(prompt)}`)
+      .then(response => {
+        let reply = response.data.reply || "Hmm kichu bujhini... abar bolo na?";
+        reply = reply.replace(/(Sohana:|সোহানা:)\s*/gi, "");
+        chatHistories[senderID].push(reply);
+        api.sendMessage(reply, threadID, messageID);
+      })
+      .catch(e => {
+        console.error("Error:", e);
+        api.sendMessage("Oops! Network problem baby... ektu pore try koro.", threadID, messageID);
+        api.setMessageReaction("❌", messageID, () => {}, true);
+      })
+      .finally(() => {
+        isProcessing = false;
+        setTimeout(() => processQueue(api), 2000); // পরের মেসেজ ১ সেকেন্ড পরে প্রসেস হবে
+      });
+  }, 3000); // ✅ এখানে ৩ সেকেন্ড delay
 }
 
 module.exports.run = async function ({ api, event, args }) {
