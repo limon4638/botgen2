@@ -8,7 +8,7 @@
     "allowInbox": false,
     "autoClean": true,
     "commandDisabled": [
-        "sim.js"
+        "autoseen.js"
     ],
     "eventDisabled": [
         "join.js"
