@@ -144,34 +144,66 @@ function onBot({ models: botModel }) {
         global.config.version = '1.2.14'
         global.client.timeStart = new Date().getTime(),
             function () {
-                
-                function loadCommands(dir) {
-                    const files = readdirSync(dir);
-                    for (const file of files) {
-                        const fullPath = join(dir, file);
-                        if (lstatSync(fullPath).isDirectory()) {
-                            loadCommands(fullPath);
-                        } else if (file.endsWith(".js")) {
-                            try {
-                                const module = require(fullPath);
-                                if (!module.config || !module.run || !module.config.commandCategory)
-                                    throw new Error("Invalid command format");
-                                if (global.client.commands.has(module.config.name || ''))
-                                    throw new Error("Duplicate command name: " + module.config.name);
-                                global.client.commands.set(module.config.name, module);
-                                if (module.config.alias) {
-                                    global.client.commandAlias.set(module.config.name, module.config.alias || []);
+                const listCommand = readdirSync(global.client.mainPath + '/Priyansh/commands').filter(command => command.endsWith('.js') && !command.includes('example') && !global.config.commandDisabled.includes(command));
+                for (const command of listCommand) {
+                    try {
+                        var module = require(global.client.mainPath + '/Priyansh/commands/' + command);
+                        if (!module.config || !module.run || !module.config.commandCategory) throw new Error(global.getText('priyansh', 'errorFormat'));
+                        if (global.client.commands.has(module.config.name || '')) throw new Error(global.getText('priyansh', 'nameExist'));
+                        if (!module.languages || typeof module.languages != 'object' || Object.keys(module.languages).length == 0) logger.loader(global.getText('priyansh', 'notFoundLanguage', module.config.name), 'warn');
+                        if (module.config.dependencies && typeof module.config.dependencies == 'object') {
+                            for (const reqDependencies in module.config.dependencies) {
+                                const reqDependenciesPath = join(__dirname, 'nodemodules', 'node_modules', reqDependencies);
+                                try {
+                                    if (!global.nodemodule.hasOwnProperty(reqDependencies)) {
+                                        if (listPackage.hasOwnProperty(reqDependencies) || listbuiltinModules.includes(reqDependencies)) global.nodemodule[reqDependencies] = require(reqDependencies);
+                                        else global.nodemodule[reqDependencies] = require(reqDependenciesPath);
+                                    } else '';
+                                } catch {
+                                    var check = false;
+                                    var isError;
+                                    logger.loader(global.getText('priyansh', 'notFoundPackage', reqDependencies, module.config.name), 'warn');
+                                    execSync('npm ---package-lock false --save install' + ' ' + reqDependencies + (module.config.dependencies[reqDependencies] == '*' || module.config.dependencies[reqDependencies] == '' ? '' : '@' + module.config.dependencies[reqDependencies]), { 'stdio': 'inherit', 'env': process['env'], 'shell': true, 'cwd': join(__dirname, 'nodemodules') });
+                                    for (let i = 1; i <= 3; i++) {
+                                        try {
+                                            require['cache'] = {};
+                                            if (listPackage.hasOwnProperty(reqDependencies) || listbuiltinModules.includes(reqDependencies)) global['nodemodule'][reqDependencies] = require(reqDependencies);
+                                            else global['nodemodule'][reqDependencies] = require(reqDependenciesPath);
+                                            check = true;
+                                            break;
+                                        } catch (error) { isError = error; }
+                                        if (check || !isError) break;
+                                    }
+                                    if (!check || isError) throw global.getText('priyansh', 'cantInstallPackage', reqDependencies, module.config.name, isError);
                                 }
-                                if (module.handleEvent) global.client.eventRegistered.push(module.config.name);
-                                logger.loader(global.getText('priyansh', 'successLoadModule', module.config.name));
-                            } catch (err) {
-                                logger.loader(`âŒ Failed to load ${file}: ${err.message}`);
                             }
+                            logger.loader(global.getText('priyansh', 'loadedPackage', module.config.name));
                         }
-                    }
-                }
-
-                loadCommands(global.client.mainPath + '/Priyansh/commands');
+                        if (module.config.envConfig) try {
+                            for (const envConfig in module.config.envConfig) {
+                                if (typeof global.configModule[module.config.name] == 'undefined') global.configModule[module.config.name] = {};
+                                if (typeof global.config[module.config.name] == 'undefined') global.config[module.config.name] = {};
+                                if (typeof global.config[module.config.name][envConfig] !== 'undefined') global['configModule'][module.config.name][envConfig] = global.config[module.config.name][envConfig];
+                                else global.configModule[module.config.name][envConfig] = module.config.envConfig[envConfig] || '';
+                                if (typeof global.config[module.config.name][envConfig] == 'undefined') global.config[module.config.name][envConfig] = module.config.envConfig[envConfig] || '';
+                            }
+                            logger.loader(global.getText('priyansh', 'loadedConfig', module.config.name));
+                        } catch (error) {
+                            throw new Error(global.getText('priyansh', 'loadedConfig', module.config.name, JSON.stringify(error)));
+                        }
+                        if (module.onLoad) {
+                            try {
+                                const moduleData = {};
+                                moduleData.api = loginApiData;
+                                moduleData.models = botModel;
+                                module.onLoad(moduleData);
+                            } catch (_0x20fd5f) {
+                                throw new Error(global.getText('priyansh', 'cantOnload', module.config.name, JSON.stringify(_0x20fd5f)), 'error');
+                            };
+                        }
+                        if (module.handleEvent) global.client.eventRegistered.push(module.config.name);
+                        global.client.commands.set(module.config.name, module);
+                        logger.loader(global.getText('priyansh', 'successLoadModule', module.config.name));
                     } catch (error) {
                         logger.loader(global.getText('priyansh', 'failLoadModule', module.config.name, error), 'error');
                     };
