@@ -1,10 +1,10 @@
 const moment = require("moment-timezone");
 const { readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync, rm } = require("fs-extra");
 const { join, resolve } = require("path");
-‎const { execSync } = require('child_process');
-‎const logger = require("./utils/log.js");
-‎const login = require("fca-priyansh");
-‎const axios = require("axios");
+const { execSync } = require('child_process');
+const logger = require("./utils/log.js");
+const login = require("fca-priyansh");
+const axios = require("axios");
 ‎const listPackage = JSON.parse(readFileSync('./package.json')).dependencies;
 ‎const listbuiltinModules = require("module").builtinModules;
 ‎
