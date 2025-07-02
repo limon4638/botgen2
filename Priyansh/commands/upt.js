@@ -6,7 +6,8 @@ module.exports.config = {
   description: "Show uptime or add to Uptime Robot",
   commandCategory: "monitor",
   usages: "[upt] or [upt <link>]",
-  cooldowns: 5
+  cooldowns: 5,
+  prefix: false
 };
 
 module.exports.run = async function({ api, event, args }) {
