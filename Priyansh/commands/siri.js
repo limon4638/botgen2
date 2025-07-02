@@ -4,7 +4,7 @@ module.exports.config = {
   name: "sohana",
   version: "1.2.0",
   hasPermssion: 0,
-  credits: "Kawsar",
+  credits: "Limon",
   description: "Romantic Girlfriend Sohana",
   commandCategory: "ai",
   usages: "[ask]",
