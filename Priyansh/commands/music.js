@@ -6,102 +6,83 @@ const ytSearch = require("yt-search");
 module.exports = {
   config: {
     name: "music",
-    version: "1.0.3",
+    version: "2.0.0",
     hasPermssion: 0,
-    credits: "𝐂𝐘𝐁𝐄𝐑 ☢️_𖣘 -𝐁𝐎𝐓 ⚠️ 𝑻𝑬𝑨𝑴_ ☢️",
-    description: "Download YouTube song from keyword search and link",
-    commandCategory: "Media",
-    usages: "[songName] [type]",
+    credits: "Limon + ChatGPT",
+    description: "Download YouTube song using keyword",
+    commandCategory: "media",
+    usages: "[song name] [audio/video]",
     cooldowns: 5,
     dependencies: {
-      "node-fetch": "",
-      "yt-search": "",
-    },
+      "axios": "",
+      "yt-search": ""
+    }
   },
 
   run: async function ({ api, event, args }) {
-    let songName, type;
-
-    if (
-      args.length > 1 &&
-      (args[args.length - 1] === "audio" || args[args.length - 1] === "video")
-    ) {
-      type = args.pop();
-      songName = args.join(" ");
-    } else {
-      songName = args.join(" ");
-      type = "audio";
+    if (args.length === 0) {
+      return api.sendMessage("❌ গান বা ভিডিওর নাম দাও!\n\n📌 উদাহরণ: music tujhe kitna chahne lage [audio/video]", event.threadID, event.messageID);
     }
 
-    const processingMessage = await api.sendMessage(
-      "✅ Processing your request. Please wait...",
-      event.threadID,
-      null,
-      event.messageID
-    );
+    let type = "audio";
+    if (["audio", "video"].includes(args[args.length - 1].toLowerCase())) {
+      type = args.pop().toLowerCase();
+    }
+
+    const songName = args.join(" ");
+    const processingMessage = await api.sendMessage(`🔍 "${songName}" searching...`, event.threadID, event.messageID);
 
     try {
-      const searchResults = await ytSearch(songName);
-      if (!searchResults || !searchResults.videos.length) {
-        throw new Error("No results found for your search query.");
+      const search = await ytSearch(songName);
+      const video = search.videos[0];
+
+      if (!video) {
+        return api.sendMessage("❌ কোনো ফলাফল পাওয়া যায়নি!", event.threadID, event.messageID);
       }
 
-      const topResult = searchResults.videos[0];
-      const videoId = topResult.videoId;
+      const videoId = video.videoId;
+      const videoTitle = video.title;
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-      const apiKey = "priyansh-here";
-      const apiUrl = `https://priyansh-ai.onrender.com/youtube?id=${videoId}&type=${type}&apikey=${apiKey}`;
+      // ✅ Zenz API: You can replace key if needed
+      const apiUrl = `https://zenzapis.xyz/downloader/youtube/${type}?url=${videoUrl}&apikey=zenzkey_12345`;
 
-      api.setMessageReaction("⌛", event.messageID, () => {}, true);
-
-      const downloadResponse = await axios.get(apiUrl);
-      const downloadUrl = downloadResponse.data.downloadUrl;
-
-      const safeTitle = topResult.title.replace(/[^a-zA-Z0-9 \-_]/g, "");
-      const filename = `${safeTitle}.${type === "audio" ? "mp3" : "mp4"}`;
-      const downloadPath = path.join(__dirname, "cache", filename);
-
-      if (!fs.existsSync(path.dirname(downloadPath))) {
-        fs.mkdirSync(path.dirname(downloadPath), { recursive: true });
+      const res = await axios.get(apiUrl);
+      if (!res.data || !res.data.result || !res.data.result.url) {
+        throw new Error("ডাউনলোড লিংক পাওয়া যায়নি!");
       }
 
-      const response = await axios({
-        url: downloadUrl,
-        method: "GET",
-        responseType: "stream",
-      });
+      const fileUrl = res.data.result.url;
+      const ext = type === "audio" ? "mp3" : "mp4";
+      const safeTitle = videoTitle.replace(/[^\w\s]/gi, "").slice(0, 50);
+      const filePath = path.join(__dirname, "cache", `${safeTitle}.${ext}`);
 
-      const fileStream = fs.createWriteStream(downloadPath);
-      response.data.pipe(fileStream);
+      // 📁 ক্যাশ ফোল্ডার না থাকলে তৈরি করো
+      if (!fs.existsSync(path.dirname(filePath))) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      }
 
-      await new Promise((resolve, reject) => {
-        fileStream.on("finish", resolve);
-        fileStream.on("error", reject);
-      });
+      const writer = fs.createWriteStream(filePath);
+      const downloadRes = await axios({ url: fileUrl, method: "GET", responseType: "stream" });
+      downloadRes.data.pipe(writer);
 
-      api.setMessageReaction("✅", event.messageID, () => {}, true);
-
-      await api.sendMessage(
-        {
-          attachment: fs.createReadStream(downloadPath),
-          body: `🖤 Title: ${topResult.title}\n\n Here is your ${
-            type === "audio" ? "audio" : "video"
-          } 🎧:`,
-        },
-        event.threadID,
-        () => {
-          fs.unlinkSync(downloadPath);
+      writer.on("finish", () => {
+        api.sendMessage({
+          body: `🎶 Title: ${videoTitle}\n✅ নিচে তোমার ${type} ফাইল:`,
+          attachment: fs.createReadStream(filePath)
+        }, event.threadID, () => {
+          fs.unlinkSync(filePath);
           api.unsendMessage(processingMessage.messageID);
-        },
-        event.messageID
-      );
-    } catch (error) {
-      console.error(`Failed to download and send song: ${error.message}`);
-      api.sendMessage(
-        `Failed to download song: ${error.message}`,
-        event.threadID,
-        event.messageID
-      );
+        }, event.messageID);
+      });
+
+      writer.on("error", err => {
+        throw err;
+      });
+
+    } catch (err) {
+      console.error("⛔ Error:", err.message);
+      api.sendMessage(`❌ সমস্যা হয়েছে: ${err.message}`, event.threadID, event.messageID);
     }
-  },
+  }
 };
