@@ -6,7 +6,7 @@ const ytSearch = require("yt-search");
 module.exports = {
   config: {
     name: "music",
-    version: "2.0.0",
+    version: "2.0.1",
     hasPermssion: 0,
     credits: "Limon + ChatGPT",
     description: "Download YouTube song using keyword",
@@ -30,7 +30,7 @@ module.exports = {
     }
 
     const songName = args.join(" ");
-    const processingMessage = await api.sendMessage(`🔍 "${songName}" searching...`, event.threadID, event.messageID);
+    const processingMessage = await api.sendMessage(`🔍 "${songName}" খোঁজা হচ্ছে...`, event.threadID, event.messageID);
 
     try {
       const search = await ytSearch(songName);
@@ -40,24 +40,24 @@ module.exports = {
         return api.sendMessage("❌ কোনো ফলাফল পাওয়া যায়নি!", event.threadID, event.messageID);
       }
 
-      const videoId = video.videoId;
+      const videoUrl = video.url;
       const videoTitle = video.title;
-      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-      // ✅ Zenz API: You can replace key if needed
-      const apiUrl = `https://zenzapis.xyz/downloader/youtube/${type}?url=${videoUrl}&apikey=zenzkey_12345`;
+      // ✅ নতুন API
+      const apiUrl = `https://api.caliph.biz.id/api/dl/yt?url=${encodeURIComponent(videoUrl)}`;
 
       const res = await axios.get(apiUrl);
-      if (!res.data || !res.data.result || !res.data.result.url) {
+      const result = res.data;
+
+      if (!result || !result.status || !result.result) {
         throw new Error("ডাউনলোড লিংক পাওয়া যায়নি!");
       }
 
-      const fileUrl = res.data.result.url;
+      const fileUrl = type === "audio" ? result.result.audio.url : result.result.video.url;
       const ext = type === "audio" ? "mp3" : "mp4";
       const safeTitle = videoTitle.replace(/[^\w\s]/gi, "").slice(0, 50);
       const filePath = path.join(__dirname, "cache", `${safeTitle}.${ext}`);
 
-      // 📁 ক্যাশ ফোল্ডার না থাকলে তৈরি করো
       if (!fs.existsSync(path.dirname(filePath))) {
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
       }
