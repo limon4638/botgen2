@@ -1,36 +1,24 @@
 const fs = require("fs");
 const path = require("path");
 
-const freezePath = path.join(__dirname, "..", "freezeStatus.json");
-const ownerID = "100041684032472"; // ✅ তোমার UID
+const freezePath = path.join(__dirname, "..", "frozen.json");
+const ownerID = "100041684032472";
 
 module.exports.config = {
   name: "freeze",
-  version: "1.0.3",
+  version: "1.0.0",
   hasPermission: 0,
   credits: "Limon + ChatGPT",
-  description: "Freeze or unfreeze the bot",
+  description: "Freeze the bot",
   commandCategory: "system",
-  usages: ".freeze on/off",
+  usages: ".freeze",
   cooldowns: 3,
-  usePrefix: true // ✅ dot prefix সাপোর্ট
+  usePrefix: true
 };
 
-module.exports.run = async function ({ api, event, args }) {
-  const senderID = event.senderID;
-  if (senderID !== ownerID)
-    return api.sendMessage("❌ You are not authorized to use this command.", event.threadID, event.messageID);
+module.exports.run = async function ({ api, event }) {
+  if (event.senderID !== ownerID) return;
 
-  if (!args[0] || !["on", "off"].includes(args[0])) {
-    return api.sendMessage("❗ Usage: .freeze on/off", event.threadID, event.messageID);
-  }
-
-  const status = args[0] === "on";
-
-  fs.writeFileSync(freezePath, JSON.stringify({ frozen: status }));
-
-  if (!status) {
-    return api.sendMessage("✅ Bot is now active!", event.threadID, event.messageID);
-  }
-  // freeze হলে চুপ থাকবে
+  fs.writeFileSync(freezePath, JSON.stringify({ frozen: true }));
+  return api.sendMessage("🤖 Bot is now frozen! All commands are disabled.", event.threadID, event.messageID);
 };
