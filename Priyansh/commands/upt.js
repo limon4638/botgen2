@@ -1,56 +1,45 @@
+const axios = require("axios");
+
 module.exports.config = {
-  name: "upt",
-  version: "1.0.0",
-  hasPermssion: 0,
-  credits: "Kawsar Modified",
-  description: "Show uptime or add to Uptime Robot",
-  commandCategory: "monitor",
-  usages: "[upt] or [upt <link>]",
-  cooldowns: 5,
-  prefix: false
+ name: "upt",
+ version: "1.0.0",
+ hasPermission: 0,
+ credits: "Shaon Ahmed",
+ description: "Create UptimeRobot monitor using API",
+ commandCategory: "system",
+ usages: "{p}upt [name] [url]",
+ cooldowns: 5,
 };
 
-module.exports.run = async function({ api, event, args }) {
-  let time = process.uptime();
-  let hours = Math.floor(time / 3600);
-  let minutes = Math.floor((time % 3600) / 60);
-  let seconds = Math.floor(time % 60);
-  const formatTime = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+module.exports.run = async function ({ api, event, args }) {
+ if (args.length < 2) {
+ return api.sendMessage("❌ Usage:\n/upt [name] [url]", event.threadID, event.messageID);
+ }
 
-  // যদি কোনো লিংক না দেয়, শুধু টাইম দেখাও
-  if (args.length === 0) {
-    return api.sendMessage(formatTime, event.threadID, event.messageID);
-  }
+ const name = args[0];
+ const url = args[1];
+ const interval = 300; // auto default 5 minutes
 
-  // যদি লিংক দেয়, তাহলে Uptime Robot-এ পাঠাও
-  const url = args.join(" ");
-  const regex = /(http(s)?:\/\/)[^\s]+/g;
-  if (!url.match(regex)) {
-    return api.sendMessage("❌ দয়া করে একটা সঠিক লিংক দাও।", event.threadID, event.messageID);
-  }
+ if (!url.startsWith("http")) {
+ return api.sendMessage("❌ Please provide a valid URL!", event.threadID, event.messageID);
+ }
 
-  const request = require("request");
-  const options = {
-    method: 'POST',
-    url: 'https://api.uptimerobot.com/v2/newMonitor',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    form: {
-      api_key: 'u2008156-9837ddae6b3c429bd0315101',
-      format: 'json',
-      type: '1',
-      url: url,
-      friendly_name: Date.now()
-    }
-  };
+ try {
+ const res = await axios.get("https://web-api-delta.vercel.app/upt", {
+ params: { name, url, interval }
+ });
 
-  request(options, function (error, response, body) {
-    if (error) return api.sendMessage("😢 লিংক পাঠাতে সমস্যা হয়েছে!", event.threadID, event.messageID);
+ const result = res.data;
 
-    const result = JSON.parse(body);
-    if (result.stat === "fail") {
-      return api.sendMessage("❗এই লিংকটা আগেই add করা আছে বা ভুল!", event.threadID, event.messageID);
-    }
+ if (result.error) {
+ return api.sendMessage(`⚠️ Error: ${result.error}`, event.threadID, event.messageID);
+ }
 
-    return api.sendMessage(`✅ লিংক add করা হয়েছে:\n${url}`, event.threadID, event.messageID);
-  });
-}
+ const monitor = result.data;
+ const msg = `✅ Monitor Created!\n──────────────\n🆔 ID: ${monitor.id}\n📛 Name: ${monitor.name}\n🔗 URL: ${monitor.url}\n⏱️ Interval: ${monitor.interval / 60} mins\n📶 Status: ${monitor.status == 1 ? "Active ✅" : "Inactive ❌"}`;
+
+ return api.sendMessage(msg, event.threadID, event.messageID);
+ } catch (e) {
+ return api.sendMessage(`🚫 API request failed!\n${e.message}`, event.threadID, event.messageID);
+ }
+};
