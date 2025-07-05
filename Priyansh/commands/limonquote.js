@@ -13,7 +13,7 @@ module.exports.config = {
 
 module.exports.run = async function ({ api, event }) {
   try {
-    const res = await axios.get("https://raw.githubusercontent.com/limon4638/limonapi/main/quotes.json");
+    const res = await axios.get("https://raw.githubusercontent.com/Limon-Mia-Ai/files/main/quotes.json");
     const quotes = res.data.quotes;
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     return api.sendMessage(`💬 ${randomQuote}`, event.threadID, event.messageID);
