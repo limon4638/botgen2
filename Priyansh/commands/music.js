@@ -1,88 +1,56 @@
-const axios = require("axios");
 const fs = require("fs");
-const path = require("path");
+const ytdl = require("ytdl-core");
 const ytSearch = require("yt-search");
+const path = require("path");
 
-module.exports = {
-  config: {
-    name: "music",
-    version: "2.0.1",
-    hasPermssion: 0,
-    credits: "Limon + ChatGPT",
-    description: "Download YouTube song using keyword",
-    commandCategory: "media",
-    usages: "[song name] [audio/video]",
-    cooldowns: 5,
-    dependencies: {
-      "axios": "",
-      "yt-search": ""
-    }
-  },
+module.exports.config = {
+  name: "music",
+  version: "2.0.0",
+  hasPermssion: 0,
+  credits: "Limon + ChatGPT",
+  description: "Download audio from YouTube",
+  commandCategory: "media",
+  usages: "[song name]",
+  cooldowns: 2,
+};
 
-  run: async function ({ api, event, args }) {
-    if (args.length === 0) {
-      return api.sendMessage("❌ গান বা ভিডিওর নাম দাও!\n\n📌 উদাহরণ: music tujhe kitna chahne lage [audio/video]", event.threadID, event.messageID);
-    }
+module.exports.run = async ({ api, event, args }) => {
+  const search = args.join(" ");
+  if (!search) return api.sendMessage("🎶 গানটির নাম লিখুন...\n\n📌 যেমন: music mon majhi", event.threadID, event.messageID);
 
-    let type = "audio";
-    if (["audio", "video"].includes(args[args.length - 1].toLowerCase())) {
-      type = args.pop().toLowerCase();
-    }
+  const loading = await api.sendMessage("🔎 গান খোঁজা হচ্ছে, অপেক্ষা করুন...", event.threadID);
 
-    const songName = args.join(" ");
-    const processingMessage = await api.sendMessage(`🔍 "${songName}" খোঁজা হচ্ছে...`, event.threadID, event.messageID);
+  try {
+    const result = await ytSearch(search);
+    if (!result.videos.length) return api.sendMessage("❌ কোনো গান পাওয়া যায়নি!", event.threadID, event.messageID);
 
-    try {
-      const search = await ytSearch(songName);
-      const video = search.videos[0];
+    const video = result.videos[0];
+    const url = video.url;
 
-      if (!video) {
-        return api.sendMessage("❌ কোনো ফলাফল পাওয়া যায়নি!", event.threadID, event.messageID);
-      }
+    const fileName = `${event.senderID}_music.mp3`;
+    const filePath = path.join(__dirname, "cache", fileName);
 
-      const videoUrl = video.url;
-      const videoTitle = video.title;
+    const stream = ytdl(url, {
+      filter: "audioonly",
+      quality: "highestaudio",
+    });
 
-      // ✅ নতুন API
-      const apiUrl = `https://api.caliph.biz.id/api/dl/yt?url=${encodeURIComponent(videoUrl)}`;
+    stream.pipe(fs.createWriteStream(filePath)).on("finish", () => {
+      api.sendMessage({
+        body: `🎵 ${video.title}\n⏱ সময়কাল: ${video.timestamp}\n📎 ইউটিউব: ${video.url}`,
+        attachment: fs.createReadStream(filePath)
+      }, event.threadID, () => {
+        fs.unlinkSync(filePath);
+      }, event.messageID);
+    });
 
-      const res = await axios.get(apiUrl);
-      const result = res.data;
+    stream.on("error", (err) => {
+      console.error(err);
+      api.sendMessage("❌ গান ডাউনলোড করতে সমস্যা হয়েছে।", event.threadID, event.messageID);
+    });
 
-      if (!result || !result.status || !result.result) {
-        throw new Error("ডাউনলোড লিংক পাওয়া যায়নি!");
-      }
-
-      const fileUrl = type === "audio" ? result.result.audio.url : result.result.video.url;
-      const ext = type === "audio" ? "mp3" : "mp4";
-      const safeTitle = videoTitle.replace(/[^\w\s]/gi, "").slice(0, 50);
-      const filePath = path.join(__dirname, "cache", `${safeTitle}.${ext}`);
-
-      if (!fs.existsSync(path.dirname(filePath))) {
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      }
-
-      const writer = fs.createWriteStream(filePath);
-      const downloadRes = await axios({ url: fileUrl, method: "GET", responseType: "stream" });
-      downloadRes.data.pipe(writer);
-
-      writer.on("finish", () => {
-        api.sendMessage({
-          body: `🎶 Title: ${videoTitle}\n✅ নিচে তোমার ${type} ফাইল:`,
-          attachment: fs.createReadStream(filePath)
-        }, event.threadID, () => {
-          fs.unlinkSync(filePath);
-          api.unsendMessage(processingMessage.messageID);
-        }, event.messageID);
-      });
-
-      writer.on("error", err => {
-        throw err;
-      });
-
-    } catch (err) {
-      console.error("⛔ Error:", err.message);
-      api.sendMessage(`❌ সমস্যা হয়েছে: ${err.message}`, event.threadID, event.messageID);
-    }
+  } catch (err) {
+    console.error(err);
+    api.sendMessage("❌ সমস্যা হয়েছে। আবার চেষ্টা করুন।", event.threadID, event.messageID);
   }
 };
