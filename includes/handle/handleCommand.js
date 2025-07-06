@@ -6,7 +6,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
   const moment = require("moment-timezone");
   const fs = require("fs");
   const path = require("path");
-  const freezePath = path.join(__dirname, "..", "frozen.json");
+  const freezePath = path.join(__dirname, "..","..", "frozen.json");
 
   return async function ({ event }) {
     const dateNow = Date.now()

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const freezePath = path.join(__dirname, "..", "frozen.json");
+const freezePath = path.join(__dirname, "..","..", "frozen.json");
 const ownerID = "100041684032472";
 
 module.exports.config = {
