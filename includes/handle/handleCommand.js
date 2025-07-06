@@ -4,6 +4,10 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
     logger = require("../../utils/log.js");
   const axios = require('axios')
   const moment = require("moment-timezone");
+  const fs = require("fs");
+  const path = require("path");
+  const freezePath = path.join(__dirname, "..", "frozen.json");
+
   return async function ({ event }) {
     const dateNow = Date.now()
     const time = moment.tz("Asia/Dhaka").format("HH:mm:ss DD/MM/YYYY");
@@ -14,6 +18,12 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
     var senderID = String(senderID),
       threadID = String(threadID);
     const threadSetting = threadData.get(threadID) || {}
+
+    // ✅ ফ্রিজ চেক (শুধু owner unfreeze চালাতে পারবে)
+    if (fs.existsSync(freezePath)) {
+      const { frozen } = JSON.parse(fs.readFileSync(freezePath));
+      if (frozen && (!body || !body.startsWith(".unfreeze") || senderID !== "100041684032472")) return;
+    }
 
     const prefixRegex = new RegExp(`^(<@!?${senderID}>|${escapeRegex((threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : PREFIX)})\\s*`);
 
@@ -47,11 +57,11 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
       else return api.sendMessage(global.getText("handleCommand", "commandNotExist", checker.bestMatch.target), threadID);
     }
 
-    // (এই পরের অংশ আগের মতোই থাকবে, আমি ছোট করছি এখানে)
-    // ... permission, cooldown, banned চেকিং ...
-    // ... এবং শেষে কমান্ড রান করা ...
-
-    // নিচে পুরা রান করার লজিক থাকবেই, আগের মতো
+    // ✅ freeze হলে unfreeze ছাড়া অন্য command রান না করায়
+    if (fs.existsSync(freezePath)) {
+      const { frozen } = JSON.parse(fs.readFileSync(freezePath));
+      if (frozen && commandName !== "unfreeze") return;
+    }
 
     // permission চেক
     var permssion = 0;
